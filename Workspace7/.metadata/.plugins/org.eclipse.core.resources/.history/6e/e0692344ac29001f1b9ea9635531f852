@@ -1,0 +1,54 @@
+package co.edu.uco.deviucopay.controller;
+
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import co.edu.uco.deviucopay.business.facade.impl.afiliado.ConsultarAfiliadoFacade;
+import co.edu.uco.deviucopay.controller.response.AfiliadoResponse;
+import co.edu.uco.deviucopay.crosscutting.exceptions.DeviUcopayException;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.MessageCatalogStrategy;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.data.CodigoMensaje;
+import co.edu.uco.deviucopay.dto.AfiliadoDTO;
+import co.edu.uco.deviucopay.dto.InstitucionDTO;
+import co.edu.uco.deviucopay.dto.TipoIdentificacionDTO;
+
+@RestController
+@RequestMapping("/afiliado/")
+public class AfiliadoController {
+	
+	@GetMapping("{id}")
+	public ResponseEntity<AfiliadoResponse> consultar(@PathVariable("id") UUID idTipoIdentificacion, @PathVariable("id") UUID idInstitucion) {
+
+		var httpStatusCode = HttpStatus.ACCEPTED;
+		var afiliadoResponse = new AfiliadoResponse();
+
+		try {
+			var afiliadoDto = AfiliadoDTO.build().setTipoIdentificacion(TipoIdentificacionDTO.build().setId(idInstitucion))
+					.setInstitucion(InstitucionDTO.build().setId(idInstitucion));
+			var facade = new ConsultarAfiliadoFacade();
+
+			afiliadoResponse.setDatos(facade.execute(afiliadoDto));
+			afiliadoResponse.getMensajes().add(MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00043));
+
+		} catch (final DeviUcopayException excepcion) {
+			httpStatusCode = HttpStatus.BAD_REQUEST;
+			afiliadoResponse.getMensajes().add(excepcion.getMensajeUsuario());
+			excepcion.printStackTrace();
+		} catch (final Exception excepcion) {
+			httpStatusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+
+			var mensajeUsuario = MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00031);
+			afiliadoResponse.getMensajes().add(mensajeUsuario);
+
+			excepcion.printStackTrace();
+		}
+
+		return new ResponseEntity<>(afiliadoResponse, httpStatusCode);
+	}
+
+}

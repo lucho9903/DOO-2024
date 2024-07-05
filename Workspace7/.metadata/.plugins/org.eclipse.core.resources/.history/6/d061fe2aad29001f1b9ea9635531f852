@@ -1,0 +1,28 @@
+package co.edu.uco.deviucopay.business.facade.impl.cuenta;
+
+import co.edu.uco.deviucopay.business.assembler.dto.impl.CuentaAssemblerDTO;
+import co.edu.uco.deviucopay.business.facade.FacadeWithoutReturn;
+import co.edu.uco.deviucopay.business.usecase.impl.cuenta.ModificarCuenta;
+import co.edu.uco.deviucopay.crosscutting.exceptions.DeviUcopayException;
+import co.edu.uco.deviucopay.crosscutting.exceptions.customs.BusinessDeviUcopayException;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.MessageCatalogStrategy;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.data.CodigoMensaje;
+import co.edu.uco.deviucopay.data.dao.factory.DAOFactory;
+import co.edu.uco.deviucopay.dto.CuentaDTO;
+
+public class ModificarCuentaFacade implements FacadeWithoutReturn<CuentaDTO> {
+
+    private DAOFactory daoFactory;
+
+    public ModificarCuentaFacade() {
+        daoFactory = DAOFactory.getFactory();
+    }
+
+	@Override
+	public void execute(CuentaDTO dto) {
+		// TODO Auto-generated method stub
+		
+	}
+
+   
+}

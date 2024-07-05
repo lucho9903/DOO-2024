@@ -1,0 +1,32 @@
+package co.edu.uco.deviucopay.business.usecase.impl.afiliado;
+
+import co.edu.uco.deviucopay.business.domain.AfiliadoDomain;
+import co.edu.uco.deviucopay.business.usecase.UseCaseWithoutReturn;
+import co.edu.uco.deviucopay.crosscutting.exceptions.customs.BusinessDeviUcopayException;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.MessageCatalogStrategy;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.data.CodigoMensaje;
+import co.edu.uco.deviucopay.crosscutting.helpers.ObjectHelper;
+import co.edu.uco.deviucopay.data.dao.factory.DAOFactory;
+
+public class RegistrarAfiliado implements UseCaseWithoutReturn<AfiliadoDomain>{
+	
+	private DAOFactory factory;
+
+	public RegistrarAfiliado(final DAOFactory factory) {
+		if (ObjectHelper.getObjectHelper().isNull(factory)) {
+			var mensajeUsuario = MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00045);
+			var mensajeTecnico = MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00046);
+			throw new BusinessDeviUcopayException(mensajeUsuario, mensajeTecnico);
+		}
+
+		this.factory = factory;
+	}
+
+	@Override
+	public void execute(AfiliadoDomain data) {
+		// TODO Auto-generated method stub
+		
+	} 
+
+
+}

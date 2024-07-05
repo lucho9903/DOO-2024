@@ -1,0 +1,137 @@
+package co.edu.uco.deviucopay.data.dao.entity.concrete.azuresql;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import co.edu.uco.deviucopay.crosscutting.exceptions.customs.DataDeviUcopayException;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.MessageCatalogStrategy;
+import co.edu.uco.deviucopay.crosscutting.exceptions.messageCatalog.data.CodigoMensaje;
+import co.edu.uco.deviucopay.crosscutting.helpers.ObjectHelper;
+import co.edu.uco.deviucopay.crosscutting.helpers.TextHelper;
+import co.edu.uco.deviucopay.crosscutting.helpers.UUIDHelper;
+import co.edu.uco.deviucopay.data.dao.entity.CarnetDAO;
+import co.edu.uco.deviucopay.entity.CarnetEntity;
+import co.edu.uco.deviucopay.entity.CuentaEntity;
+import co.edu.uco.deviucopay.data.dao.entity.concrete.*;
+import co.edu.uco.deviucopay.entity.AfiliadoEntity;
+import co.edu.uco.deviucopay.entity.InstitucionEntity;
+import co.edu.uco.deviucopay.entity.TipoIdentificacionEntity;
+import co.edu.uco.deviucopay.entity.TipoCuentaEntity;
+
+
+public class CarnetPostgresqlDAO extends SqlConnection implements CarnetDAO {
+	
+	public CarnetPostgresqlDAO(final Connection connection) {
+		super(connection);
+		
+	}
+
+	@Override
+	public List<CarnetEntity> consultar(CarnetEntity data) {
+	    final StringBuilder sentenciaSql = new StringBuilder();
+	    sentenciaSql.append("SELECT ca.id, ca.numero_carnet, ca.cuenta_id, ");
+	    sentenciaSql.append("cu.numero_cuenta, cu.saldo, cu.pin, ");
+	    sentenciaSql.append("cu.tipo_cuenta_id, tc.nombre AS nombre_tipo_cuenta, ");
+	    sentenciaSql.append("cu.afiliado_id, af.numero_id_afiliado, af.nombre AS nombre_afiliado, ");
+	    sentenciaSql.append("af.correo AS correo_afiliado, af.telefono AS telefono_afiliado, ");
+	    sentenciaSql.append("af.tipo_identificacion_id, ti.nombre AS nombre_tipo_identificacion, ");
+	    sentenciaSql.append("af.institucion_id, i.nombre AS nombre_institucion ");
+	    sentenciaSql.append("FROM carnet ca ");
+	    sentenciaSql.append("JOIN cuenta cu ON ca.cuenta_id = cu.id ");
+	    sentenciaSql.append("JOIN tipo_cuenta tc ON cu.tipo_cuenta_id = tc.id ");
+	    sentenciaSql.append("JOIN afiliado af ON cu.afiliado_id = af.id ");
+	    sentenciaSql.append("JOIN tipo_identificacion ti ON af.tipo_identificacion_id = ti.id ");
+	    sentenciaSql.append("LEFT JOIN institucion i ON af.institucion_id = i.id ");
+
+	    final List<Object> parametros = new ArrayList<>();
+	    final List<String> condiciones = new ArrayList<>();
+
+	    if (data != null) {
+	        if (!ObjectHelper.getObjectHelper().isNull(data.getId()) && !data.getId().equals(UUIDHelper.getDefault())) {
+	            condiciones.add("ca.id = ?");
+	            parametros.add(data.getId());
+	        }
+	        if (!TextHelper.isNullOrEmpty(data.getNumeroCarnet())) {
+	            condiciones.add("ca.numero_carnet = ?");
+	            parametros.add(data.getNumeroCarnet());
+	        }
+	        if (!ObjectHelper.getObjectHelper().isNull(data.getCuenta())
+	                && !ObjectHelper.getObjectHelper().isNull(data.getCuenta().getId())
+	                && !data.getCuenta().getId().equals(UUIDHelper.getDefault())) {
+	            condiciones.add("ca.cuenta_id = ?");
+	            parametros.add(data.getCuenta().getId());
+	        }
+	    }
+
+	    if (!condiciones.isEmpty()) {
+	        sentenciaSql.append(" WHERE ");
+	        sentenciaSql.append(String.join(" AND ", condiciones));
+	    }
+
+	    final List<CarnetEntity> carnets = new ArrayList<>();
+
+	    try (final PreparedStatement sentenciaSqlPreparada = getConexion().prepareStatement(sentenciaSql.toString())) {
+	        for (int i = 0; i < parametros.size(); i++) {
+	            sentenciaSqlPreparada.setObject(i + 1, parametros.get(i));
+	        }
+
+	        try (final ResultSet resultado = sentenciaSqlPreparada.executeQuery()) {
+	            while (resultado.next()) {
+	                CarnetEntity carnet = new CarnetEntity();
+	                carnet.setId(UUIDHelper.convertToUUID(resultado.getString("id")));
+	                carnet.setNumeroCarnet(resultado.getString("numero_carnet"));
+
+	                CuentaEntity cuenta = new CuentaEntity();
+	                cuenta.setId(UUIDHelper.convertToUUID(resultado.getString("cuenta_id")));
+	                cuenta.setNumeroCuenta(resultado.getString("numero_cuenta"));
+	                cuenta.setSaldo(resultado.getFloat("saldo"));
+	                cuenta.setPin(resultado.getString("pin"));
+
+	                TipoCuentaEntity tipoCuenta = new TipoCuentaEntity();
+	                tipoCuenta.setId(UUIDHelper.convertToUUID(resultado.getString("tipo_cuenta_id")));
+	                tipoCuenta.setNombre(resultado.getString("nombre_tipo_cuenta"));
+	                cuenta.setTipoCuenta(tipoCuenta);
+
+	                AfiliadoEntity afiliado = new AfiliadoEntity();
+	                afiliado.setId(UUIDHelper.convertToUUID(resultado.getString("afiliado_id")));
+	                afiliado.setNumeroIdAfiliado(resultado.getString("numero_id_afiliado"));
+	                afiliado.setNombre(resultado.getString("nombre_afiliado"));
+	                afiliado.setCorreo(resultado.getString("correo_afiliado"));
+	                afiliado.setTelefono(resultado.getString("telefono_afiliado"));
+
+	                TipoIdentificacionEntity tipoIdentificacion = new TipoIdentificacionEntity();
+	                tipoIdentificacion.setId(UUIDHelper.convertToUUID(resultado.getString("tipo_identificacion_id")));
+	                tipoIdentificacion.setNombre(resultado.getString("nombre_tipo_identificacion"));
+	                afiliado.setTipoIdentificacion(tipoIdentificacion);
+
+	                InstitucionEntity institucion = null;
+	                if (resultado.getString("institucion_id") != null) {
+	                    institucion = new InstitucionEntity();
+	                    institucion.setId(UUIDHelper.convertToUUID(resultado.getString("institucion_id")));
+	                    institucion.setNombre(resultado.getString("nombre_institucion"));
+	                }
+	                afiliado.setInstitucion(institucion);
+
+	                cuenta.setAfiliado(afiliado);
+	                carnet.setCuenta(cuenta);
+
+	                carnets.add(carnet);
+	            }
+	        }
+	    } catch (SQLException excepcion) {
+	        var mensajeUsuario = MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00033);
+	        var mensajeTecnico = MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00054);
+	        throw new DataDeviUcopayException(mensajeUsuario, mensajeTecnico, excepcion);
+	    } catch (Exception excepcion) {
+	        var mensajeUsuario = MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00033);
+	        var mensajeTecnico = MessageCatalogStrategy.getContenidoMensaje(CodigoMensaje.M00054);
+	        throw new DataDeviUcopayException(mensajeUsuario, mensajeTecnico, excepcion);
+	    }
+
+	    return carnets;
+	}
+
+}
